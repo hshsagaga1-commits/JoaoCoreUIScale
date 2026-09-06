@@ -1,6 +1,7 @@
 local CoreGui = game:GetService("CoreGui")
 
 local SCALE = 0.65
+local SPACE_SCALE = 0.75
 local TAG = "__JoaoCoreUIScale"
 
 local function find(root, name)
@@ -56,15 +57,12 @@ local function compactUDim(instance, property, attributePrefix)
         instance:SetAttribute(offsetAttribute, value.Offset)
     end
 
-    local originalScale =
-        instance:GetAttribute(scaleAttribute)
-
-    local originalOffset =
-        instance:GetAttribute(offsetAttribute)
+    local originalScale = instance:GetAttribute(scaleAttribute)
+    local originalOffset = instance:GetAttribute(offsetAttribute)
 
     instance[property] = UDim.new(
         originalScale,
-        math.floor(originalOffset * SCALE + 0.5)
+        math.floor(originalOffset * SPACE_SCALE + 0.5)
     )
 end
 
@@ -111,7 +109,7 @@ local function compactPosition(gui)
 
     gui.Position = UDim2.new(
         xScale,
-        math.floor(xOffset * SCALE + 0.5),
+        math.floor(xOffset * SPACE_SCALE + 0.5),
         yScale,
         yOffset
     )
