@@ -2,17 +2,11 @@ local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 
 local SCALE = 0.65
-local TAG = "__JoaoCoreUIScaleOriginal"
+local TAG = "__JoaoCoreUIScale"
 
-if getgenv().__JoaoCoreUIRender then
+if getgenv().__JoaoCoreUIFix then
     pcall(function()
-        getgenv().__JoaoCoreUIRender:Disconnect()
-    end)
-end
-
-if getgenv().__JoaoCoreUIAdded then
-    pcall(function()
-        getgenv().__JoaoCoreUIAdded:Disconnect()
+        getgenv().__JoaoCoreUIFix:Disconnect()
     end)
 end
 
@@ -40,351 +34,161 @@ local function find(root, name)
     return nil
 end
 
-local function ancestorUnder(object, parent)
-    if not object or not parent then
-        return nil
-    end
-
-    local current = object
-
-    while current and current.Parent ~= parent do
-        current = current.Parent
-    end
-
-    if current and current.Parent == parent and current:IsA("GuiObject") then
-        return current
-    end
-
-    return nil
-end
-
-local function scaleObject(gui)
+local function scale(gui)
     if not gui or not gui:IsA("GuiObject") then
         return
     end
 
     gui.ClipsDescendants = false
 
-    local scale = gui:FindFirstChild(TAG)
+    local uiScale = gui:FindFirstChild(TAG)
 
-    if not scale then
-        scale = Instance.new("UIScale")
-        scale.Name = TAG
-        scale.Parent = gui
+    if not uiScale then
+        uiScale = Instance.new("UIScale")
+        uiScale.Name = TAG
+        uiScale.Parent = gui
     end
 
-    scale.Scale = SCALE
+    uiScale.Scale = SCALE
 end
 
-local function offsetPosition(gui, pixels)
-    if not gui or not gui:IsA("GuiObject") then
-        return nil
-    end
+local topbarContainer
 
-    local p = gui.Position
-
-    return UDim2.new(
-        p.X.Scale,
-        p.X.Offset + pixels,
-        p.Y.Scale,
-        p.Y.Offset
-    )
-end
-
-local menuRoot
-local unibarRoot
-local backpackRoot
-
-local menuPosition
-local unibarPosition
-local backpackPosition
-
-local initialized = false
-
-local function initialize()
-    if initialized then
-        return
-    end
-
-    local topbarContainer =
+repeat
+    topbarContainer =
         CoreGui:FindFirstChild("TopBarApp")
 
-    if not topbarContainer then
-        return
-    end
-
-    local topbar =
-        topbarContainer:FindFirstChild("TopBarApp")
-        or topbarContainer
-
-    local menuHolder =
-        find(topbar, "MenuIconHolder")
-
-    local unibarLeft =
-        find(topbar, "UnibarLeftFrame")
-
-    local unibarMenu =
-        find(topbar, "UnibarMenu")
-
-    local stacked =
-        find(topbar, "StackedElements")
-
-    if not menuHolder
-        or not unibarLeft
-        or not unibarMenu
-    then
-        return
-    end
-
-    local trigger =
-        find(menuHolder, "TriggerPoint")
-
-    if trigger and trigger:IsA("GuiObject") then
-        trigger.ClipsDescendants = false
-    end
-
-    menuHolder.ClipsDescendants = false
-    unibarLeft.ClipsDescendants = false
-
-    local root =
-        ancestorUnder(
-            unibarMenu,
-            unibarLeft
-        )
-
-    if not root then
-        root = unibarMenu
-    end
-
-    local backpack =
-        stacked
-
-    if not backpack then
-        for _, v in ipairs(topbar:GetDescendants()) do
-            if v:IsA("ImageButton")
-                or v:IsA("ImageLabel")
-            then
-
-                local n =
-                    string.lower(v.Name)
-
-                local image =
-                    string.lower(
-                        tostring(v.Image)
-                    )
-
-                if string.find(
-                    n,
-                    "backpack",
-                    1,
-                    true
-                )
-                or string.find(
-                    n,
-                    "inventory",
-                    1,
-                    true
-                )
-                or string.find(
-                    image,
-                    "backpack",
-                    1,
-                    true
-                )
-                then
-                    backpack =
-                        ancestorUnder(
-                            v,
-                            unibarLeft
-                        )
-
-                    if backpack then
-                        break
-                    end
-                end
-            end
-        end
-    end
-
     task.wait()
+until topbarContainer
 
-    local menuX =
-        menuHolder.AbsolutePosition.X
+local topbar =
+    topbarContainer:FindFirstChild("TopBarApp")
+    or topbarContainer
 
-    local menuWidth =
-        menuHolder.AbsoluteSize.X
+local menuHolder =
+    find(topbar, "MenuIconHolder")
 
-    local unibarX =
-        unibarMenu.AbsolutePosition.X
+local unibarLeft =
+    find(topbar, "UnibarLeftFrame")
 
-    local unibarWidth =
-        unibarMenu.AbsoluteSize.X
+local unibarMenu =
+    find(topbar, "UnibarMenu")
 
-    local firstGap =
-        unibarX
-        - (menuX + menuWidth)
-
-    if firstGap < 0 then
-        firstGap = 0
-    end
-
-    local secondGap = 0
-
-    if backpack then
-        secondGap =
-            backpack.AbsolutePosition.X
-            - (
-                unibarX
-                + unibarWidth
-            )
-
-        if secondGap < 0 then
-            secondGap = 0
-        end
-    end
-
-    scaleObject(menuHolder)
-    scaleObject(unibarMenu)
-
-    if backpack then
-        scaleObject(backpack)
-    end
-
-    local chat =
-        CoreGui:FindFirstChild(
-            "ExperienceChat"
-        )
-
-    if chat then
-        local appLayout =
-            find(
-                chat,
-                "appLayout"
-            )
-
-        if appLayout then
-            scaleObject(appLayout)
-        end
-    end
-
-    task.wait()
-
-    local wantedUnibarX =
-        menuX
-        + (menuWidth * SCALE)
-        + (firstGap * SCALE)
-
-    local moveUnibar =
-        wantedUnibarX
-        - unibarMenu.AbsolutePosition.X
-
-    local newUnibarPosition =
-        offsetPosition(
-            root,
-            moveUnibar
-        )
-
-    if newUnibarPosition then
-        root.Position =
-            newUnibarPosition
-    end
-
-    task.wait()
-
-    if backpack then
-        local wantedBackpackX =
-            wantedUnibarX
-            + (unibarWidth * SCALE)
-            + (secondGap * SCALE)
-
-        local moveBackpack =
-            wantedBackpackX
-            - backpack.AbsolutePosition.X
-
-        local newBackpackPosition =
-            offsetPosition(
-                backpack,
-                moveBackpack
-            )
-
-        if newBackpackPosition then
-            backpack.Position =
-                newBackpackPosition
-        end
-    end
-
-    menuRoot =
-        menuHolder
-
-    unibarRoot =
-        root
-
-    backpackRoot =
-        backpack
-
-    menuPosition =
-        menuRoot.Position
-
-    unibarPosition =
-        unibarRoot.Position
-
-    if backpackRoot then
-        backpackPosition =
-            backpackRoot.Position
-    end
-
-    initialized = true
+if not menuHolder
+    or not unibarLeft
+    or not unibarMenu
+then
+    error("CoreUI nao encontrada")
 end
 
-local function enforce()
-    if not initialized then
-        initialize()
-        return
-    end
+menuHolder.ClipsDescendants = false
+unibarLeft.ClipsDescendants = false
+unibarMenu.ClipsDescendants = false
 
-    if menuRoot
-        and menuRoot.Parent
-    then
-        menuRoot.Position =
-            menuPosition
-    end
+local trigger =
+    find(menuHolder, "TriggerPoint")
 
-    if unibarRoot
-        and unibarRoot.Parent
-    then
-        unibarRoot.Position =
-            unibarPosition
-    end
-
-    if backpackRoot
-        and backpackRoot.Parent
-        and backpackPosition
-    then
-        backpackRoot.Position =
-            backpackPosition
-    end
+if trigger and trigger:IsA("GuiObject") then
+    trigger.ClipsDescendants = false
 end
 
-for _ = 1, 30 do
-    initialize()
+local robloxButton
 
-    if initialized then
-        break
-    end
-
-    task.wait(0.1)
+if trigger then
+    robloxButton =
+        find(trigger, "IconHitArea")
+        or find(trigger, "Background")
+        or trigger
+else
+    robloxButton = menuHolder
 end
 
-getgenv().__JoaoCoreUIRender =
-    RunService.RenderStepped:Connect(
-        enforce
+if robloxButton:IsA("GuiObject") then
+    robloxButton.ClipsDescendants = false
+end
+
+RunService.RenderStepped:Wait()
+RunService.RenderStepped:Wait()
+
+local originalButtonX =
+    robloxButton.AbsolutePosition.X
+
+local originalButtonWidth =
+    robloxButton.AbsoluteSize.X
+
+local originalUnibarX =
+    unibarMenu.AbsolutePosition.X
+
+local originalGap =
+    originalUnibarX
+    - (
+        originalButtonX
+        + originalButtonWidth
     )
 
-getgenv().__JoaoCoreUIAdded =
-    CoreGui.DescendantAdded:Connect(
-        function()
-            if not initialized then
-                task.defer(initialize)
-            end
-        end
+if originalGap < 0 then
+    originalGap = 0
+end
+
+local originalLeftPosition =
+    unibarLeft.Position
+
+scale(menuHolder)
+scale(unibarMenu)
+
+local chat =
+    CoreGui:FindFirstChild("ExperienceChat")
+
+if chat then
+    local appLayout =
+        find(chat, "appLayout")
+
+    if appLayout then
+        scale(appLayout)
+    end
+end
+
+RunService.RenderStepped:Wait()
+RunService.RenderStepped:Wait()
+RunService.RenderStepped:Wait()
+
+local desiredButtonWidth =
+    originalButtonWidth * SCALE
+
+local desiredGap =
+    originalGap * SCALE
+
+local desiredUnibarX =
+    originalButtonX
+    + desiredButtonWidth
+    + desiredGap
+
+local currentUnibarX =
+    unibarMenu.AbsolutePosition.X
+
+local moveX =
+    desiredUnibarX
+    - currentUnibarX
+
+local targetPosition =
+    UDim2.new(
+        originalLeftPosition.X.Scale,
+        originalLeftPosition.X.Offset + moveX,
+        originalLeftPosition.Y.Scale,
+        originalLeftPosition.Y.Offset
     )
+
+unibarLeft.Position =
+    targetPosition
+
+getgenv().__JoaoCoreUIFix =
+    RunService.RenderStepped:Connect(function()
+
+        if unibarLeft
+            and unibarLeft.Parent
+        then
+
+            unibarLeft.Position =
+                targetPosition
+        end
+    end)
