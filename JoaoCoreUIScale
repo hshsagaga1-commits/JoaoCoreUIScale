@@ -1,7 +1,7 @@
 local CoreGui = game:GetService("CoreGui")
 
 local SCALE = 0.65
-local GROUP_GAP = 8
+local GROUP_SHIFT = 5
 local TAG = "__JoaoCoreUIScale"
 
 local function find(root, name)
@@ -53,15 +53,8 @@ local function compactUDim(instance, property, attributePrefix)
     local offsetAttribute = attributePrefix .. "_Offset"
 
     if instance:GetAttribute(scaleAttribute) == nil then
-        instance:SetAttribute(
-            scaleAttribute,
-            value.Scale
-        )
-
-        instance:SetAttribute(
-            offsetAttribute,
-            value.Offset
-        )
+        instance:SetAttribute(scaleAttribute, value.Scale)
+        instance:SetAttribute(offsetAttribute, value.Offset)
     end
 
     local originalScale =
@@ -125,55 +118,6 @@ local function compactPosition(gui)
     )
 end
 
-local function moveWholeGroup(gui)
-    if not gui or not gui:IsA("GuiObject") then
-        return
-    end
-
-    local position = gui.Position
-
-    if gui:GetAttribute("__JoaoGroupXScale") == nil then
-        gui:SetAttribute(
-            "__JoaoGroupXScale",
-            position.X.Scale
-        )
-
-        gui:SetAttribute(
-            "__JoaoGroupXOffset",
-            position.X.Offset
-        )
-
-        gui:SetAttribute(
-            "__JoaoGroupYScale",
-            position.Y.Scale
-        )
-
-        gui:SetAttribute(
-            "__JoaoGroupYOffset",
-            position.Y.Offset
-        )
-    end
-
-    local xScale =
-        gui:GetAttribute("__JoaoGroupXScale")
-
-    local xOffset =
-        gui:GetAttribute("__JoaoGroupXOffset")
-
-    local yScale =
-        gui:GetAttribute("__JoaoGroupYScale")
-
-    local yOffset =
-        gui:GetAttribute("__JoaoGroupYOffset")
-
-    gui.Position = UDim2.new(
-        xScale,
-        xOffset + GROUP_GAP,
-        yScale,
-        yOffset
-    )
-end
-
 local function compactPadding(root)
     if not root then
         return
@@ -212,6 +156,76 @@ local function compactLayouts(root)
             end
         end
     end
+end
+
+local function shiftWholeRightGroup(unibarLeft, unibarMenu, stacked)
+    if unibarLeft then
+        local padding = nil
+
+        for _, child in ipairs(unibarLeft:GetChildren()) do
+            if child:IsA("UIPadding") then
+                padding = child
+                break
+            end
+        end
+
+        if padding then
+            if padding:GetAttribute("__JoaoGroupBasePadding") == nil then
+                padding:SetAttribute(
+                    "__JoaoGroupBasePadding",
+                    padding.PaddingLeft.Offset
+                )
+            end
+
+            local original =
+                padding:GetAttribute("__JoaoGroupBasePadding")
+
+            padding.PaddingLeft = UDim.new(
+                padding.PaddingLeft.Scale,
+                original + GROUP_SHIFT
+            )
+
+            return
+        end
+    end
+
+    local function shift(gui)
+        if not gui or not gui:IsA("GuiObject") then
+            return
+        end
+
+        if gui:GetAttribute("__JoaoGroupXScale") == nil then
+            gui:SetAttribute(
+                "__JoaoGroupXScale",
+                gui.Position.X.Scale
+            )
+
+            gui:SetAttribute(
+                "__JoaoGroupXOffset",
+                gui.Position.X.Offset
+            )
+
+            gui:SetAttribute(
+                "__JoaoGroupYScale",
+                gui.Position.Y.Scale
+            )
+
+            gui:SetAttribute(
+                "__JoaoGroupYOffset",
+                gui.Position.Y.Offset
+            )
+        end
+
+        gui.Position = UDim2.new(
+            gui:GetAttribute("__JoaoGroupXScale"),
+            gui:GetAttribute("__JoaoGroupXOffset") + GROUP_SHIFT,
+            gui:GetAttribute("__JoaoGroupYScale"),
+            gui:GetAttribute("__JoaoGroupYOffset")
+        )
+    end
+
+    shift(unibarMenu)
+    shift(stacked)
 end
 
 local function applyTopbar()
@@ -268,15 +282,13 @@ local function applyTopbar()
 
         compactPadding(unibarLeft)
         compactLayouts(unibarLeft)
-
-        moveWholeGroup(unibarLeft)
-
-    elseif unibarMenu
-        and unibarMenu.Parent
-        and unibarMenu.Parent:IsA("GuiObject")
-    then
-        moveWholeGroup(unibarMenu.Parent)
     end
+
+    shiftWholeRightGroup(
+        unibarLeft,
+        unibarMenu,
+        stacked
+    )
 end
 
 local function applyChat()
