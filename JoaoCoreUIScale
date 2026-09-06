@@ -1,7 +1,7 @@
 local CoreGui = game:GetService("CoreGui")
 
 local SCALE = 0.65
-local GROUP_GAP = 3
+local GROUP_GAP = 5
 local TAG = "__JoaoCoreUIScale"
 
 local function find(root, name)
@@ -270,7 +270,10 @@ local function applyTopbar()
         compactLayouts(unibarLeft)
 
         moveWholeGroup(unibarLeft)
-    elseif unibarMenu and unibarMenu.Parent:IsA("GuiObject") then
+
+    elseif unibarMenu
+        and unibarMenu.Parent:IsA("GuiObject")
+    then
         moveWholeGroup(unibarMenu.Parent)
     end
 end
