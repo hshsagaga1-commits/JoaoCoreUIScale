@@ -1,0 +1,251 @@
+local CoreGui = game:GetService("CoreGui")
+
+local SCALE = 0.65
+local TAG = "__JoaoCoreUIScale"
+
+local function find(root, name)
+    if not root then
+        return nil
+    end
+
+    if root.Name == name then
+        return root
+    end
+
+    local direct = root:FindFirstChild(name)
+
+    if direct then
+        return direct
+    end
+
+    for _, v in ipairs(root:GetDescendants()) do
+        if v.Name == name then
+            return v
+        end
+    end
+
+    return nil
+end
+
+local function setScale(gui)
+    if not gui or not gui:IsA("GuiObject") then
+        return
+    end
+
+    gui.ClipsDescendants = false
+
+    local scale = gui:FindFirstChild(TAG)
+
+    if not scale then
+        scale = Instance.new("UIScale")
+        scale.Name = TAG
+        scale.Parent = gui
+    end
+
+    scale.Scale = SCALE
+end
+
+local function compactUDim(instance, property, attributePrefix)
+    local value = instance[property]
+
+    local scaleAttribute = attributePrefix .. "_Scale"
+    local offsetAttribute = attributePrefix .. "_Offset"
+
+    if instance:GetAttribute(scaleAttribute) == nil then
+        instance:SetAttribute(scaleAttribute, value.Scale)
+        instance:SetAttribute(offsetAttribute, value.Offset)
+    end
+
+    local originalScale =
+        instance:GetAttribute(scaleAttribute)
+
+    local originalOffset =
+        instance:GetAttribute(offsetAttribute)
+
+    instance[property] = UDim.new(
+        originalScale,
+        math.floor(originalOffset * SCALE + 0.5)
+    )
+end
+
+local function compactPosition(gui)
+    if not gui or not gui:IsA("GuiObject") then
+        return
+    end
+
+    local position = gui.Position
+
+    if gui:GetAttribute("__JoaoPositionXScale") == nil then
+        gui:SetAttribute(
+            "__JoaoPositionXScale",
+            position.X.Scale
+        )
+
+        gui:SetAttribute(
+            "__JoaoPositionXOffset",
+            position.X.Offset
+        )
+
+        gui:SetAttribute(
+            "__JoaoPositionYScale",
+            position.Y.Scale
+        )
+
+        gui:SetAttribute(
+            "__JoaoPositionYOffset",
+            position.Y.Offset
+        )
+    end
+
+    local xScale =
+        gui:GetAttribute("__JoaoPositionXScale")
+
+    local xOffset =
+        gui:GetAttribute("__JoaoPositionXOffset")
+
+    local yScale =
+        gui:GetAttribute("__JoaoPositionYScale")
+
+    local yOffset =
+        gui:GetAttribute("__JoaoPositionYOffset")
+
+    gui.Position = UDim2.new(
+        xScale,
+        math.floor(xOffset * SCALE + 0.5),
+        yScale,
+        yOffset
+    )
+end
+
+local function compactPadding(root)
+    if not root then
+        return
+    end
+
+    for _, v in ipairs(root:GetDescendants()) do
+        if v:IsA("UIPadding") then
+            compactUDim(
+                v,
+                "PaddingLeft",
+                "__JoaoPaddingLeft"
+            )
+
+            compactUDim(
+                v,
+                "PaddingRight",
+                "__JoaoPaddingRight"
+            )
+        end
+    end
+end
+
+local function compactLayouts(root)
+    if not root then
+        return
+    end
+
+    for _, v in ipairs(root:GetDescendants()) do
+        if v:IsA("UIListLayout") then
+            if v.FillDirection == Enum.FillDirection.Horizontal then
+                compactUDim(
+                    v,
+                    "Padding",
+                    "__JoaoLayoutPadding"
+                )
+            end
+        end
+    end
+end
+
+local function applyTopbar()
+    local topbarContainer =
+        CoreGui:FindFirstChild("TopBarApp")
+
+    if not topbarContainer then
+        return
+    end
+
+    local topbar =
+        topbarContainer:FindFirstChild("TopBarApp")
+        or topbarContainer
+
+    local menuHolder =
+        find(topbar, "MenuIconHolder")
+
+    local unibarLeft =
+        find(topbar, "UnibarLeftFrame")
+
+    local unibarMenu =
+        find(topbar, "UnibarMenu")
+
+    local stacked =
+        find(topbar, "StackedElements")
+
+    if menuHolder then
+        menuHolder.ClipsDescendants = false
+
+        local trigger =
+            find(menuHolder, "TriggerPoint")
+
+        if trigger and trigger:IsA("GuiObject") then
+            trigger.ClipsDescendants = false
+        end
+
+        setScale(menuHolder)
+    end
+
+    if unibarMenu then
+        setScale(unibarMenu)
+    end
+
+    if stacked then
+        setScale(stacked)
+
+        compactPosition(stacked)
+
+        compactPadding(stacked)
+
+        compactLayouts(stacked)
+    end
+
+    if unibarLeft then
+        unibarLeft.ClipsDescendants = false
+
+        compactPadding(unibarLeft)
+
+        compactLayouts(unibarLeft)
+    end
+end
+
+local function applyChat()
+    local chat =
+        CoreGui:FindFirstChild("ExperienceChat")
+
+    if not chat then
+        return
+    end
+
+    local appLayout =
+        find(chat, "appLayout")
+
+    if appLayout then
+        setScale(appLayout)
+    end
+end
+
+local function apply()
+    pcall(applyTopbar)
+    pcall(applyChat)
+end
+
+for _ = 1, 20 do
+    apply()
+    task.wait(0.25)
+end
+
+CoreGui.DescendantAdded:Connect(function()
+    task.defer(function()
+        task.wait(0.1)
+        apply()
+    end)
+end)
