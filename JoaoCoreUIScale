@@ -1,7 +1,7 @@
 local CoreGui = game:GetService("CoreGui")
 
 local SCALE = 0.65
-local SPACE_SCALE = 0.75
+local GROUP_GAP = 3
 local TAG = "__JoaoCoreUIScale"
 
 local function find(root, name)
@@ -53,16 +53,26 @@ local function compactUDim(instance, property, attributePrefix)
     local offsetAttribute = attributePrefix .. "_Offset"
 
     if instance:GetAttribute(scaleAttribute) == nil then
-        instance:SetAttribute(scaleAttribute, value.Scale)
-        instance:SetAttribute(offsetAttribute, value.Offset)
+        instance:SetAttribute(
+            scaleAttribute,
+            value.Scale
+        )
+
+        instance:SetAttribute(
+            offsetAttribute,
+            value.Offset
+        )
     end
 
-    local originalScale = instance:GetAttribute(scaleAttribute)
-    local originalOffset = instance:GetAttribute(offsetAttribute)
+    local originalScale =
+        instance:GetAttribute(scaleAttribute)
+
+    local originalOffset =
+        instance:GetAttribute(offsetAttribute)
 
     instance[property] = UDim.new(
         originalScale,
-        math.floor(originalOffset * SPACE_SCALE + 0.5)
+        math.floor(originalOffset * SCALE + 0.5)
     )
 end
 
@@ -109,7 +119,56 @@ local function compactPosition(gui)
 
     gui.Position = UDim2.new(
         xScale,
-        math.floor(xOffset * SPACE_SCALE + 0.5),
+        math.floor(xOffset * SCALE + 0.5),
+        yScale,
+        yOffset
+    )
+end
+
+local function moveWholeGroup(gui)
+    if not gui or not gui:IsA("GuiObject") then
+        return
+    end
+
+    local position = gui.Position
+
+    if gui:GetAttribute("__JoaoGroupXScale") == nil then
+        gui:SetAttribute(
+            "__JoaoGroupXScale",
+            position.X.Scale
+        )
+
+        gui:SetAttribute(
+            "__JoaoGroupXOffset",
+            position.X.Offset
+        )
+
+        gui:SetAttribute(
+            "__JoaoGroupYScale",
+            position.Y.Scale
+        )
+
+        gui:SetAttribute(
+            "__JoaoGroupYOffset",
+            position.Y.Offset
+        )
+    end
+
+    local xScale =
+        gui:GetAttribute("__JoaoGroupXScale")
+
+    local xOffset =
+        gui:GetAttribute("__JoaoGroupXOffset")
+
+    local yScale =
+        gui:GetAttribute("__JoaoGroupYScale")
+
+    local yOffset =
+        gui:GetAttribute("__JoaoGroupYOffset")
+
+    gui.Position = UDim2.new(
+        xScale,
+        xOffset + GROUP_GAP,
         yScale,
         yOffset
     )
@@ -200,9 +259,7 @@ local function applyTopbar()
         setScale(stacked)
 
         compactPosition(stacked)
-
         compactPadding(stacked)
-
         compactLayouts(stacked)
     end
 
@@ -210,8 +267,11 @@ local function applyTopbar()
         unibarLeft.ClipsDescendants = false
 
         compactPadding(unibarLeft)
-
         compactLayouts(unibarLeft)
+
+        moveWholeGroup(unibarLeft)
+    elseif unibarMenu and unibarMenu.Parent:IsA("GuiObject") then
+        moveWholeGroup(unibarMenu.Parent)
     end
 end
 
