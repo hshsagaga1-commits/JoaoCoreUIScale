@@ -1,20 +1,8 @@
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
-local StarterGui = game:GetService("StarterGui")
 
 local SCALE = 0.65
 local TAG = "__JoaoCoreUIScale"
-
-local function hideBackpack()
-    pcall(function()
-        StarterGui:SetCoreGuiEnabled(
-            Enum.CoreGuiType.Backpack,
-            false
-        )
-    end)
-end
-
-hideBackpack()
 
 if getgenv().__JoaoCoreUIFix then
     pcall(function()
@@ -22,9 +10,9 @@ if getgenv().__JoaoCoreUIFix then
     end)
 end
 
-if getgenv().__JoaoBackpackFix then
+if getgenv().__JoaoBackpackHide then
     pcall(function()
-        getgenv().__JoaoBackpackFix:Disconnect()
+        getgenv().__JoaoBackpackHide:Disconnect()
     end)
 end
 
@@ -68,6 +56,41 @@ local function scale(gui)
     end
 
     uiScale.Scale = SCALE
+end
+
+local function hideBackpack(unibarMenu)
+    if not unibarMenu then
+        return
+    end
+
+    for _, v in ipairs(unibarMenu:GetDescendants()) do
+        local name = string.lower(v.Name)
+
+        if string.find(name, "backpack", 1, true) then
+            local current = v
+
+            while current
+                and current.Parent
+                and current.Parent ~= unibarMenu
+            do
+                if current:IsA("GuiObject") then
+                    local corner =
+                        current:FindFirstChildWhichIsA("UICorner")
+
+                    if corner then
+                        current.Visible = false
+                        return
+                    end
+                end
+
+                current = current.Parent
+            end
+
+            if v:IsA("GuiObject") then
+                v.Visible = false
+            end
+        end
+    end
 end
 
 local topbarContainer
@@ -199,22 +222,23 @@ local targetPosition =
 unibarLeft.Position =
     targetPosition
 
-hideBackpack()
+hideBackpack(unibarMenu)
 
 getgenv().__JoaoCoreUIFix =
     RunService.RenderStepped:Connect(function()
-
         if unibarLeft
             and unibarLeft.Parent
         then
             unibarLeft.Position =
                 targetPosition
         end
+
+        hideBackpack(unibarMenu)
     end)
 
-getgenv().__JoaoBackpackFix =
-    CoreGui.DescendantAdded:Connect(function()
+getgenv().__JoaoBackpackHide =
+    unibarMenu.DescendantAdded:Connect(function()
         task.defer(function()
-            hideBackpack()
+            hideBackpack(unibarMenu)
         end)
     end)
