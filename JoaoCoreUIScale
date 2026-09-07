@@ -10,12 +10,6 @@ if getgenv().__JoaoCoreUIFix then
     end)
 end
 
-if getgenv().__JoaoBackpackAdded then
-    pcall(function()
-        getgenv().__JoaoBackpackAdded:Disconnect()
-    end)
-end
-
 local function find(root, name)
     if not root then
         return nil
@@ -187,74 +181,63 @@ local targetPosition =
 unibarLeft.Position =
     targetPosition
 
-local backpackPill = nil
+local stackedElements =
+    find(topbar, "StackedElements")
 
-local function findBackpackPill()
-    local backpackButton =
-        topbar:FindFirstChild(
-            "IconHitArea_backpack",
-            true
-        )
-
-    if not backpackButton then
-        return nil
+local function hideShopBag()
+    if not stackedElements
+        or not stackedElements.Parent
+    then
+        stackedElements =
+            find(topbar, "StackedElements")
     end
 
-    local current =
-        backpackButton.Parent
+    if not stackedElements then
+        return
+    end
 
-    while current
-        and current ~= unibarMenu
-        and current ~= topbar
-    do
+    local found = false
 
-        if current:IsA("GuiObject") then
-            local padding =
-                current:FindFirstChildWhichIsA(
-                    "UIPadding"
-                )
+    for _, v in ipairs(stackedElements:GetChildren()) do
+        if v:IsA("GuiObject")
+            and v.LayoutOrder == 1
+        then
+            v.Visible = false
+            found = true
+        end
+    end
 
-            local corner =
-                current:FindFirstChildWhichIsA(
-                    "UICorner"
-                )
+    if found then
+        return
+    end
 
-            local layout =
-                current:FindFirstChildWhichIsA(
-                    "UIListLayout"
-                )
+    for _, v in ipairs(stackedElements:GetDescendants()) do
+        local name =
+            string.lower(v.Name)
 
-            if padding
-                and corner
-                and layout
-                and layout.FillDirection
-                    == Enum.FillDirection.Horizontal
+        if string.find(name, "shop", 1, true)
+            or string.find(name, "store", 1, true)
+            or string.find(name, "offer", 1, true)
+        then
+            local current = v
+
+            while current
+                and current.Parent
+                and current.Parent ~= stackedElements
+            do
+                current = current.Parent
+            end
+
+            if current
+                and current:IsA("GuiObject")
             then
-                return current
+                current.Visible = false
             end
         end
-
-        current =
-            current.Parent
-    end
-
-    return nil
-end
-
-local function hideBackpack()
-    if not backpackPill
-        or not backpackPill.Parent
-    then
-        backpackPill =
-            findBackpackPill()
-    end
-
-    if backpackPill then
-        backpackPill.Visible = false
     end
 end
 
-hideBackpack()
+hideShopBag()
 
 getgenv().__JoaoCoreUIFix =
     RunService.RenderStepped:Connect(function()
@@ -266,20 +249,5 @@ getgenv().__JoaoCoreUIFix =
                 targetPosition
         end
 
-        hideBackpack()
-    end)
-
-getgenv().__JoaoBackpackAdded =
-    topbar.DescendantAdded:Connect(function(v)
-
-        if string.lower(v.Name)
-            == "iconhitarea_backpack"
-        then
-            backpackPill = nil
-
-            task.defer(function()
-                task.wait()
-                hideBackpack()
-            end)
-        end
+        hideShopBag()
     end)
