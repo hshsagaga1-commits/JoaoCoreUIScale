@@ -10,9 +10,9 @@ if getgenv().__JoaoCoreUIFix then
     end)
 end
 
-if getgenv().__JoaoBackpackHide then
+if getgenv().__JoaoBackpackAdded then
     pcall(function()
-        getgenv().__JoaoBackpackHide:Disconnect()
+        getgenv().__JoaoBackpackAdded:Disconnect()
     end)
 end
 
@@ -56,41 +56,6 @@ local function scale(gui)
     end
 
     uiScale.Scale = SCALE
-end
-
-local function hideBackpack(unibarMenu)
-    if not unibarMenu then
-        return
-    end
-
-    for _, v in ipairs(unibarMenu:GetDescendants()) do
-        local name = string.lower(v.Name)
-
-        if string.find(name, "backpack", 1, true) then
-            local current = v
-
-            while current
-                and current.Parent
-                and current.Parent ~= unibarMenu
-            do
-                if current:IsA("GuiObject") then
-                    local corner =
-                        current:FindFirstChildWhichIsA("UICorner")
-
-                    if corner then
-                        current.Visible = false
-                        return
-                    end
-                end
-
-                current = current.Parent
-            end
-
-            if v:IsA("GuiObject") then
-                v.Visible = false
-            end
-        end
-    end
 end
 
 local topbarContainer
@@ -222,10 +187,78 @@ local targetPosition =
 unibarLeft.Position =
     targetPosition
 
-hideBackpack(unibarMenu)
+local backpackPill = nil
+
+local function findBackpackPill()
+    local backpackButton =
+        topbar:FindFirstChild(
+            "IconHitArea_backpack",
+            true
+        )
+
+    if not backpackButton then
+        return nil
+    end
+
+    local current =
+        backpackButton.Parent
+
+    while current
+        and current ~= unibarMenu
+        and current ~= topbar
+    do
+
+        if current:IsA("GuiObject") then
+            local padding =
+                current:FindFirstChildWhichIsA(
+                    "UIPadding"
+                )
+
+            local corner =
+                current:FindFirstChildWhichIsA(
+                    "UICorner"
+                )
+
+            local layout =
+                current:FindFirstChildWhichIsA(
+                    "UIListLayout"
+                )
+
+            if padding
+                and corner
+                and layout
+                and layout.FillDirection
+                    == Enum.FillDirection.Horizontal
+            then
+                return current
+            end
+        end
+
+        current =
+            current.Parent
+    end
+
+    return nil
+end
+
+local function hideBackpack()
+    if not backpackPill
+        or not backpackPill.Parent
+    then
+        backpackPill =
+            findBackpackPill()
+    end
+
+    if backpackPill then
+        backpackPill.Visible = false
+    end
+end
+
+hideBackpack()
 
 getgenv().__JoaoCoreUIFix =
     RunService.RenderStepped:Connect(function()
+
         if unibarLeft
             and unibarLeft.Parent
         then
@@ -233,12 +266,20 @@ getgenv().__JoaoCoreUIFix =
                 targetPosition
         end
 
-        hideBackpack(unibarMenu)
+        hideBackpack()
     end)
 
-getgenv().__JoaoBackpackHide =
-    unibarMenu.DescendantAdded:Connect(function()
-        task.defer(function()
-            hideBackpack(unibarMenu)
-        end)
+getgenv().__JoaoBackpackAdded =
+    topbar.DescendantAdded:Connect(function(v)
+
+        if string.lower(v.Name)
+            == "iconhitarea_backpack"
+        then
+            backpackPill = nil
+
+            task.defer(function()
+                task.wait()
+                hideBackpack()
+            end)
+        end
     end)
