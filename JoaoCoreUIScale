@@ -1,12 +1,30 @@
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 
 local SCALE = 0.65
 local TAG = "__JoaoCoreUIScale"
 
+local function hideBackpack()
+    pcall(function()
+        StarterGui:SetCoreGuiEnabled(
+            Enum.CoreGuiType.Backpack,
+            false
+        )
+    end)
+end
+
+hideBackpack()
+
 if getgenv().__JoaoCoreUIFix then
     pcall(function()
         getgenv().__JoaoCoreUIFix:Disconnect()
+    end)
+end
+
+if getgenv().__JoaoBackpackFix then
+    pcall(function()
+        getgenv().__JoaoBackpackFix:Disconnect()
     end)
 end
 
@@ -181,14 +199,22 @@ local targetPosition =
 unibarLeft.Position =
     targetPosition
 
+hideBackpack()
+
 getgenv().__JoaoCoreUIFix =
     RunService.RenderStepped:Connect(function()
 
         if unibarLeft
             and unibarLeft.Parent
         then
-
             unibarLeft.Position =
                 targetPosition
         end
+    end)
+
+getgenv().__JoaoBackpackFix =
+    CoreGui.DescendantAdded:Connect(function()
+        task.defer(function()
+            hideBackpack()
+        end)
     end)
